@@ -3,10 +3,10 @@
            Transpiler
 //////////////////////////////*/
 
-import Parser     from './parser'
-import Conditions from './tokens/conditions'
+const Parser     = require('./parser')
+const Conditions = require('./tokens/conditions')
 
-export default class Transpiler {
+module.exports   = class Transpiler {
 
   constructor (content = '') {
 

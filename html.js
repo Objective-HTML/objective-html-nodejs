@@ -3,11 +3,11 @@
               Main
 //////////////////////////////*/
 
-import Transpiler from './core/transpiler'
-import File       from './core/file'
-import FS         from 'fs'
+const Transpiler = require('./core/transpiler')
+const File       = require('./core/file')
+const FS         = require('fs')
 
-export default class Objective {
+module.exports = class Objective {
 
      constructor (input) {
 
@@ -48,5 +48,3 @@ export default class Objective {
      }
 
 }
-
-

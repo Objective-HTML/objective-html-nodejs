@@ -1,4 +1,4 @@
-export default {
+module.exports = {
     'higher': '>',
     'lower': '<',
     'equal': '==',

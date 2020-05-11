@@ -3,8 +3,8 @@
              Parser
 //////////////////////////////*/
 
-import Lexer from './lexer'
-export default class Parser {
+const Lexer    = require('./lexer')
+module.exports = class Parser {
 
     constructor (content = '') {
 

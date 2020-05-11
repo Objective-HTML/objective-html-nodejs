@@ -3,7 +3,7 @@
              Lexer
 //////////////////////////////*/
 
-export default class Lexer {
+module.exports = class Lexer {
 
     constructor (content = '') {
 

@@ -3,10 +3,10 @@
               File
 //////////////////////////////*/
 
-import FS from 'fs'
-import PATH from 'path'
+const FS       = require('fs')
+const PATH     = require('path')
 
-export default class File {
+module.exports = class File {
 
      constructor (dir) {
           this.dir = dir
