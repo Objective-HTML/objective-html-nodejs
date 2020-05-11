@@ -62,6 +62,33 @@ module.exports   = class Transpiler {
               modules.push(module_name)
             }
           }
+        } else if (type === 'FOR_START') {
+
+          if (args.length > 0) {
+            let for_args = args.join(' ').split(':').map(x => x.trim())
+            for (const arg of for_args) {
+              for (const i in Conditions) {
+                if (arg.includes(i)) {
+                  for_args[for_args.indexOf(arg)] = arg.replace(i, Conditions[i])
+                }
+              }
+            }
+            for_args[for_args.indexOf(for_args.filter(x => x.match(/\s[=]\s/g)).join(''))] = 'var ' + for_args.filter(x => x.match(/\s[=]\s/g)).join('') 
+            code.push(`for(${for_args.join(';')}){`)
+          }
+        } else if (type === 'WHILE_START') {
+
+          if (args.length > 0) {
+            let while_args = args.join(' ')
+            for (const arg of while_args) {
+              for (const i in Conditions) {
+                if (while_args.includes(i)) {
+                  while_args = while_args.replace(i, Conditions[i])
+                }
+              }
+            }
+            code.push(`while(${while_args}){`)
+          }
         }
 
         else if (type === 'EXPORT_START') {
@@ -185,7 +212,9 @@ module.exports   = class Transpiler {
                   type === 'FUNCTION_END' || 
                   type === 'ELSE_END'     || 
                   type === 'ELIF_END'     ||
-                  type === 'EXPORT_END') {
+                  type === 'EXPORT_END'   ||
+                  type === 'FOR_END'      ||
+                  type === 'WHILE_END') {
           
           code.push('}')
           if (type === 'FUNCTION_END') {
