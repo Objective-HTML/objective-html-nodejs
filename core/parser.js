@@ -44,17 +44,18 @@ module.exports = class Parser {
                     break
                 }
                 
-                case 'BLOCK_VALUE': {
-                    if (this.status === 'BLOCK_VALUE') {
+                
+                case 'BLOCK_TEXT': {
+                    if (this.status === 'BLOCK_TEXT') {
                         blocks[blck_index - 1].push(char)
-                        this.status = 'BLOCK_VALUE'
+                        this.status = 'BLOCK_TEXT'
 
                     } else if (this.status === 'BLOCK_END') {
                         ++blck_index
                         blocks.push([])
                         blocks[blck_index - 1] = []
                         blocks[blck_index - 1].push(char)
-                        this.status = 'BLOCK_VALUE'
+                        this.status = 'BLOCK_TEXT'
                     }
                     break
                 }
@@ -73,6 +74,10 @@ module.exports = class Parser {
                     }
                     break
                 }
+                case 'BLOCK_VARIABLE_END': {
+                    blocks[blck_index - 1].push(char)
+                    break
+                } 
 
                 case 'BLOCK_END': {
                     if (this.status === 'BLOCK_CONTENT' || this.status === 'BLOCK_START') {
@@ -101,7 +106,8 @@ module.exports = class Parser {
                   params    = [],
                   variables = [],
                   param_map = [],
-                  block     = ''
+                  block     = '',
+                  all       = []
             if (status === 'BLOCK_OPEN' || status === 'BLOCK_CLOSE') {
 
                 if (item.includes('<!--') && item.includes('-->')) {
@@ -132,12 +138,13 @@ module.exports = class Parser {
                                      .trim()
                                      .split(' ') || []
                     args.map(x => x.includes('=') ? params.push(x) : variables.push(x))
+                    args.map(x => all.push(x))
                     params.map(x => param_map.push({name: x.split('=')[0], value: x.split('=')[1]
                                                                                    .replace(/\"|\'/g, '')}))
                     block     = block.split(' ')[0]
                 }
 
-                blcks_lst.push({ block: block, id: index, type: id, args: variables, parameters: param_map })
+                blcks_lst.push({ block: block, id: index, type: id, args: variables, parameters: param_map, all: all })
 
             } else if (status === 'TEXT' || status === 'VARIABLE') {
 

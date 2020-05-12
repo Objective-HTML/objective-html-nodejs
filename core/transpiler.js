@@ -18,7 +18,8 @@ module.exports   = class Transpiler {
     const code      = [],
           functions = [],
           modules   = []
-    let   status = 'NONE'
+    let   status = 'NONE',
+    blck   = false
     for (const item of this.parser) {
       const block  = item.block,
             type   = item.type,
@@ -31,7 +32,13 @@ module.exports   = class Transpiler {
 
         else if (type === 'COMMENT') code.push('/*' + block.replace(/(<!--|-->)/g, '') + '*/')
 
-        else if (type === 'TEXT') code.push('\'' + block + '\'')
+        else if (type === 'TEXT') {
+          if (block.match(/\{(.*)\}/g)) {
+            code.push('`' + block.replace(/\{/g, '${') + '`')
+          } else {
+            code.push('\'' + block + '\'')
+          }
+        }
 
         else if (type === 'VARIABLE') code.push(block.replace(/(\{|\})/g, '').replace('::', '.'))
 
@@ -42,27 +49,61 @@ module.exports   = class Transpiler {
         else if (type === 'PRINT_END') code.push(');')
 
         else if (type === 'IMPORT_START') {
+          blck = true
           let module_path = '',
-              module_name = ''
+              module_name = '',
+              module_type = ''
           if (params.length > 0) {
             for (const i of params) {
               if (i.name === 'src') {
                 module_path = i.value
               } else if (i.name === 'name') {
                 module_name = i.value
+              } else if (i.name === 'as') {
+                if (i.value === 'js' || i.value === 'lib') {
+                  module_type = i.value
+                }
               }
             }
             if (module_path) {
               if (module_name === '') {
-                module_name = module_path.split('/').pop().replace('.html', '.js')
+                if (module_type !== '') {
+                  if (module_type === 'js') {
+                    module_name = module_path.split('/').pop().replace('.html', '.js')
+                    module_path = module_path.replace('./', '')
+                  }
+                } else {
+                  module_name = module_path.split('/').pop().replace('.html', '.js')
+                }
               }
-              if (!module_path.endsWith('.js') && module_path.startsWith('./')) module_path = module_path + '.js'
+              if (!module_path.endsWith('.js') && module_type === '') module_path = './' + module_path + '.js'
               console.log(module_path)
               code.push(`const ${module_name}=require('${module_path}');`)
               modules.push(module_name)
             }
           }
-        } else if (type === 'FOR_START') {
+        }
+        else if (type === 'UPDATE_START') {
+          console.log(item)
+          let stats = false
+          if (params.length > 0) {
+            for (const i of params) {
+              if (i.name === 'name') {
+                const elements = code.filter(x => x.includes(`${i.value}=`))
+                for (const element of elements) {
+                  if (element.includes('const') || element.includes('let')) {
+                    code[code.indexOf(code.filter(x => x.includes(`${i.value}=`))[0])] = 'let ' + i.name + '='  
+                    stats = true
+                  }
+                }
+                if (stats) {
+                  code.push(`${i.value}=`)
+                }
+              }
+            }
+          }
+        } 
+        else if (type === 'FOR_START') {
 
           if (args.length > 0) {
             let for_args = args.join(' ').split(':').map(x => x.trim())
@@ -75,6 +116,7 @@ module.exports   = class Transpiler {
             }
             for_args[for_args.indexOf(for_args.filter(x => x.match(/\s[=]\s/g)).join(''))] = 'var ' + for_args.filter(x => x.match(/\s[=]\s/g)).join('') 
             code.push(`for(${for_args.join(';')}){`)
+            blck = true
           }
         } else if (type === 'WHILE_START') {
 
@@ -88,6 +130,7 @@ module.exports   = class Transpiler {
               }
             }
             code.push(`while(${while_args}){`)
+            blck = true
           }
         }
 
@@ -124,6 +167,7 @@ module.exports   = class Transpiler {
               } else {
                 code.push(`function ${function_name}(${function_args}){`)
               }
+              blck = true
               functions.push(function_name)
 
             } else {
@@ -160,7 +204,7 @@ module.exports   = class Transpiler {
 
               } else {
 
-                code.push(`var ${variable_name}=`)
+                code.push(`const ${variable_name}=`)
 
               }
 
@@ -205,21 +249,23 @@ module.exports   = class Transpiler {
 
             condition_args = condition_args.join('')
             code.push(`${condition_name}(${condition_args}){`)
+            blck = true
 
           }
 
         } else if (type === 'IF_END'      || 
-                  type === 'FUNCTION_END' || 
-                  type === 'ELSE_END'     || 
-                  type === 'ELIF_END'     ||
-                  type === 'EXPORT_END'   ||
-                  type === 'FOR_END'      ||
-                  type === 'WHILE_END') {
+                   type === 'FUNCTION_END' || 
+                   type === 'ELSE_END'     || 
+                   type === 'ELIF_END'     ||
+                   type === 'EXPORT_END'   ||
+                   type === 'FOR_END'      ||
+                   type === 'WHILE_END') {
           
           code.push('}')
           if (type === 'FUNCTION_END') {
             if (status === 'EXPORT') {
               code.push(',')
+              blck = false
             }
           }
 
@@ -235,23 +281,34 @@ module.exports   = class Transpiler {
           } else {
             code.push(';')
           }
+          blck = false
 
         } else {
 
           for (const i of modules) {
-            let function_args = args || []
+            blck = true
+            let function_args = []
             if (block.startsWith(i)) {
               if (type.endsWith('_START')) {
-                console.log(item)
-                if (args.length > 0) {
-
-                  args = args.map(x => x.startsWith('#') ? x.replace('#', '') : '\'' + x + '\'')
-                  function_args = args.join(',')
-
+                if (item.all.length > 0) {
+                  for (const all_item of item.all) {
+                    if (all_item.includes('=')) {
+                      if (all_item.split('=')[0] === 'var') {
+                        function_args.push(all_item.split('=')[1])
+                      }
+                    } else {
+                      if (all_item.startsWith('{') && all_item.endsWith('}')) {
+                        function_args.push(all_item.slice(1, all_item.length - 1))
+                      } else {
+                        function_args.push('\'' + all_item + '\'')
+                      }
+                    }
+                    
+                  }
                 }
 
+                function_args = function_args.join(',')
                 code.push(`${i}.${block.split('::')[1]}(${function_args})`)
-
 
               }
             }
@@ -267,9 +324,11 @@ module.exports   = class Transpiler {
 
                 if (args.length > 0) {
 
-                  args = args.map(x => x.startsWith('#') ? x.replace('#', '') : '\'' + x + '\'')
+                  args = args.map(x => x.startsWith('{') && x.endsWith('}') ?x =  x.replace(/(\{|\})/, '') : x = '\'' + x + '\'')
                   function_args = args.join(',')
 
+                } else if (params.length > 0) {
+                  console.log(params)
                 }
 
                 code.push(`${block}(${function_args})`)
