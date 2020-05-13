@@ -14,7 +14,6 @@ module.exports = class Parser {
     }
 
     parse () {
-
         if (typeof this.lexer !== 'object') throw new Error('Lexer content must be an object!')
 
         let   blck_index  = 0,
@@ -44,7 +43,6 @@ module.exports = class Parser {
                     break
                 }
                 
-                
                 case 'BLOCK_TEXT': {
                     if (this.status === 'BLOCK_TEXT') {
                         blocks[blck_index - 1].push(char)
@@ -59,7 +57,7 @@ module.exports = class Parser {
                     }
                     break
                 }
-                
+
                 case 'BLOCK_VARIABLE': {
                     if (this.status === 'BLOCK_VARIABLE') {
                         blocks[blck_index - 1].push(char)
@@ -156,7 +154,6 @@ module.exports = class Parser {
 
             }
         }
-
         return blcks_lst
 
     }
