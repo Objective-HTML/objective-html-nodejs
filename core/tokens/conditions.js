@@ -1,12 +1,19 @@
 module.exports = {
     'higher': '>',
     'lower': '<',
+    'less': '<',
+    'than': '',
     'equal': '==',
+    'equals': '==',
+    'to': '',
     'or': '||',
     'and': '&&',
     'minus': '-',
     'plus': '+',
     'divide': '/',
     'modulo': '%',
-    'multiply': '*'
+    'multiply': '*',
+    'is': '',
+    'increment': '++',
+    'decrement': '--'
 }
